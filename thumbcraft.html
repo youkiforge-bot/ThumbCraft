@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThumbCraft – Criador de Thumbnails</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a3e;
+    --accent: #ff4d6d;
+    --accent2: #7b5ea7;
+    --gold: #f5c842;
+    --text: #f0eeff;
+    --muted: #8884a8;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* NAV */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.9);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .nav-badge {
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 99px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .nav-badge:hover { opacity: 0.85; }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 16px 24px 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 10px 18px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: all 0.2s;
+    white-space: nowrap;
+    background: transparent;
+  }
+  .tab.active {
+    background: var(--card);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  /* PAGES */
+  .page { display: none; padding: 24px; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  /* FORM */
+  label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 6px; }
+  input, textarea, select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 11px 14px;
+    font-size: 0.9rem;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 14px;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #c2185b);
+    color: white;
+    width: 100%;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    width: 100%;
+  }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), #e6a800);
+    color: #0a0a0f;
+    width: 100%;
+    font-weight: 700;
+  }
+
+  /* PREVIEW CANVAS */
+  #previewWrap {
+    background: #000;
+    border-radius: var(--radius);
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 16/9;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+  #thumbCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* TEMPLATE GRID */
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .template-item {
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    position: relative;
+  }
+  .template-item.selected { border-color: var(--accent); }
+  .template-item span { position: relative; z-index: 2; text-align: center; padding: 4px; }
+
+  /* COLOR ROW */
+  .color-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .color-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .color-dot:hover { transform: scale(1.15); }
+  .color-dot.selected { border-color: white; }
+
+  /* AI RESULT */
+  #aiResult {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    display: none;
+    margin-top: 12px;
+    color: var(--text);
+  }
+  #aiResult.visible { display: block; }
+
+  .ai-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+  }
+
+  /* LOADING SPINNER */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* PRICING */
+  .plan-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .plan-card.pro {
+    border-color: var(--gold);
+    background: linear-gradient(145deg, #1a1a26, #1f1930);
+  }
+  .plan-card.pro::before {
+    content: '⭐ POPULAR';
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: var(--gold);
+    color: #0a0a0f;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 1px;
+  }
+  .plan-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .plan-price {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .plan-price.gold { color: var(--gold); }
+  .plan-price small { font-size: 0.9rem; font-weight: 400; color: var(--muted); }
+  .plan-feature {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .plan-feature .check { color: #4caf50; font-size: 1rem; }
+  .plan-feature .x { color: #e53935; font-size: 1rem; }
+
+  /* TOAST */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    z-index: 999;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* DOWNLOAD ROW */
+  .action-row { display: flex; gap: 10px; }
+  .action-row .btn { flex: 1; }
+
+  /* LOCK BADGE */
+  .lock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(245,200,66,0.15);
+    color: var(--gold);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 6px;
+    border: 1px solid rgba(245,200,66,0.3);
+    margin-left: 6px;
+  }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* RANGE */
+  input[type=range] {
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin-bottom: 6px;
+    accent-color: var(--accent);
+  }
+
+  .range-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .range-val { font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Thumb<span>Craft</span></div>
+  <div class="nav-badge" onclick="showTab('planos')">🔓 Ver Planos</div>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('editor')" id="tab-editor">🎨 Editor</div>
+  <div class="tab" onclick="showTab('ia')" id="tab-ia">✨ IA Criativa</div>
+  <div class="tab" onclick="showTab('planos')" id="tab-planos">💎 Planos</div>
+</div>
+
+<!-- EDITOR -->
+<div class="page active" id="page-editor">
+
+  <div class="card">
+    <div class="section-label">Template</div>
+    <div class="template-grid" id="templateGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Textos</div>
+    <label>Título principal</label>
+    <input type="text" id="titleInput" placeholder="EX: COMO GANHAR 1K SUBS EM 30 DIAS" oninput="renderThumb()">
+    <label>Subtítulo</label>
+    <input type="text" id="subtitleInput" placeholder="Tutorial completo" oninput="renderThumb()">
+    <label>Cor do título</label>
+    <div class="color-row" id="colorRow"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Tamanho do texto</div>
+    <div class="range-row">
+      <label style="margin:0">Título</label>
+      <span class="range-val" id="sizeVal">52</span>
+    </div>
+    <input type="range" min="24" max="90" value="52" oninput="document.getElementById('sizeVal').textContent=this.value; titleFontSize=+this.value; renderThumb()">
+  </div>
+
+  <div id="previewWrap">
+    <canvas id="thumbCanvas"></canvas>
+  </div>
+
+  <div class="action-row">
+    <button class="btn btn-primary" onclick="downloadThumb()">⬇ Baixar PNG</button>
+    <button class="btn btn-secondary" onclick="showTab('ia')">✨ Usar IA</button>
+  </div>
+
+</div>
+
+<!-- IA -->
+<div class="page" id="page-ia">
+
+  <div class="card">
+    <div class="section-label">IA Criativa <span class="lock-badge">🔒 PRO</span></div>
+    <label>Sobre o que é seu vídeo/stream?</label>
+    <textarea id="iaInput" placeholder="Ex: tutorial de Minecraft para iniciantes, como montar um PC barato em 2025..."></textarea>
+    <label>Plataforma</label>
+    <select id="platformSelect">
+      <option>YouTube</option>
+      <option>Twitch</option>
+      <option>Kick</option>
+      <option>TikTok</option>
+    </select>
+    <button class="btn btn-primary" onclick="runIA()">
+      <span id="iaSpinnerWrap" style="display:flex;align-items:center;gap:8px">
+        <span class="spinner" id="iaSpinner"></span>
+        <span id="iaBtnText">✨ Gerar Ideias com IA</span>
+      </span>
+    </button>
+    <div id="aiResult"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Dica de uso</div>
+    <p style="font-size:0.83rem;color:var(--muted);line-height:1.6">
+      💡 A IA vai sugerir <strong style="color:var(--text)">títulos chamativos</strong>, 
+      <strong style="color:var(--text)">paletas de cores</strong> e 
+      <strong style="color:var(--text)">ideias de layout</strong> para sua thumbnail. 
+      Depois é só aplicar no editor!
+    </p>
+  </div>
+
+</div>
+
+<!-- PLANOS -->
+<div class="page" id="page-planos">
+
+  <div class="plan-card">
+    <div class="plan-name">Grátis</div>
+    <div class="plan-price">R$ 0<small>/mês</small></div>
+    <div class="plan-feature"><span class="check">✓</span> 3 templates básicos</div>
+    <div class="plan-feature"><span class="check">✓</span> Editor de textos</div>
+    <div class="plan-feature"><span class="check">✓</span> Download PNG</div>
+    <div class="plan-feature"><span class="x">✗</span> IA Criativa</div>
+    <div class="plan-feature"><span class="x">✗</span> Templates premium</div>
+    <div class="plan-feature"><span class="x">✗</span> Sem marca d'água</div>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="showToast('Você já está no plano grátis!')">Plano atual</button>
+  </div>
+
+  <div class="plan-card pro">
+    <div class="plan-name">Pro Creator</div>
+    <div class="plan-price gold">R$ 19<small>/mês</small></div>
+    <div class="plan-feature"><span class="check">✓</span> Todos os templates</div>
+    <div class="plan-feature"><span class="check">✓</span> IA Criativa ilimitada</div>
+    <div class="plan-feature"><span class="check">✓</span> Download sem marca d'água</div>
+    <div class="plan-feature"><span class="check">✓</span> Formatos extras (Banner, Story)</div>
+    <div class="plan-feature"><span class="check">✓</span> Suporte prioritário</div>
+    <button class="btn btn-gold" style="margin-top:8px" onclick="showToast('Em breve! Integração com pagamento chegando 🚀')">Assinar Pro – R$19/mês</button>
+  </div>
+
+  <div class="card" style="text-align:center;padding:20px">
+    <div style="font-size:1.4rem;margin-bottom:8px">💰</div>
+    <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:6px">Seja revendedor</div>
+    <p style="font-size:0.82rem;color:var(--muted);line-height:1.5;margin-bottom:14px">
+      Indique o ThumbCraft e ganhe <strong style="color:var(--gold)">30% de comissão</strong> por cada assinante Pro que entrar pelo seu link.
+    </p>
+    <button class="btn btn-secondary" onclick="showToast('Programa de afiliados em breve! 🎉')">Quero ser afiliado</button>
+  </div>
+
+</div>
+
+<div id="toast">🎉 Ação realizada!</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+const canvas = document.getElementById('thumbCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 1280;
+canvas.height = 720;
+
+let selectedTemplate = 0;
+let selectedColor = '#ffffff';
+let titleFontSize = 52;
+
+const TEMPLATES = [
+  { name: 'Dark Fire', bg: ['#0d0d0d','#3d0000'], accent: '#ff4d6d' },
+  { name: 'Ocean', bg: ['#020c1b','#0a3060'], accent: '#00d4ff' },
+  { name: 'Neon', bg: ['#0a001a','#1a0033'], accent: '#bf00ff' },
+  { name: 'Sunset', bg: ['#1a0500','#5c1a00'], accent: '#ff8c00' },
+  { name: 'Matrix', bg: ['#000c00','#001400'], accent: '#00ff41' },
+  { name: 'Gold', bg: ['#0d0900','#2b1d00'], accent: '#f5c842' },
+];
+
+const COLORS = ['#ffffff','#ff4d6d','#00d4ff','#f5c842','#00ff41','#bf00ff','#ff8c00','#ff6b6b'];
+
+// ─── TEMPLATE GRID ────────────────────────────────────────
+function buildTemplateGrid() {
+  const grid = document.getElementById('templateGrid');
+  TEMPLATES.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'template-item' + (i === 0 ? ' selected' : '');
+    div.style.background = `linear-gradient(135deg, ${t.bg[0]}, ${t.bg[1]})`;
+    div.style.border = `2px solid ${i === 0 ? t.accent : 'transparent'}`;
+    div.innerHTML = `<span style="color:${t.accent}">${t.name}</span>`;
+    div.onclick = () => {
+      document.querySelectorAll('.template-item').forEach((el,j) => {
+        el.classList.toggle('selected', j === i);
+        el.style.borderColor = j === i ? TEMPLATES[j].accent : 'transparent';
+      });
+      selectedTemplate = i;
+      renderThumb();
+    };
+    grid.appendChild(div);
+  });
+}
+
+// ─── COLOR ROW ────────────────────────────────────────────
+function buildColorRow() {
+  const row = document.getElementById('colorRow');
+  COLORS.forEach((c, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'color-dot' + (i === 0 ? ' selected' : '');
+    dot.style.background = c;
+    dot.onclick = () => {
+      document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+      dot.classList.add('selected');
+      selectedColor = c;
+      renderThumb();
+    };
+    row.appendChild(dot);
+  });
+}
+
+// ─── RENDER ───────────────────────────────────────────────
+function renderThumb() {
+  const t = TEMPLATES[selectedTemplate];
+  const W = canvas.width, H = canvas.height;
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, t.bg[0]);
+  grad.addColorStop(1, t.bg[1]);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Decorative circles
+  ctx.save();
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = t.accent;
+  ctx.beginPath();
+  ctx.arc(W * 0.85, H * 0.2, 280, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.07;
+  ctx.beginPath();
+  ctx.arc(W * 0.1, H * 0.8, 200, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Accent bar
+  ctx.fillStyle = t.accent;
+  ctx.fillRect(60, H - 90, 8, 50);
+
+  // Title
+  const title = document.getElementById('titleInput').value || 'SEU TÍTULO AQUI';
+  const px = Math.round(titleFontSize * (W / 1280) * 13);
+  ctx.font = `bold ${px}px Arial Black, Arial`;
+  ctx.fillStyle = selectedColor;
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur = 20;
+  wrapText(ctx, title.toUpperCase(), 80, H * 0.45, W - 160, px * 1.2, 2);
+  ctx.shadowBlur = 0;
+
+  // Subtitle
+  const sub = document.getElementById('subtitleInput').value;
+  if (sub) {
+    ctx.font = `500 ${Math.round(px * 0.42)}px Arial`;
+    ctx.fillStyle = t.accent;
+    ctx.fillText(sub, 80, H - 58);
+  }
+
+  // Watermark (free plan)
+  ctx.font = '500 22px Arial';
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillText('ThumbCraft · Plano Grátis', W - 360, H - 22);
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineH, maxLines) {
+  const words = text.split(' ');
+  let line = '';
+  let lines = [];
+  for (let w of words) {
+    const test = line + w + ' ';
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line.trim());
+      line = w + ' ';
+    } else { line = test; }
+  }
+  if (line) lines.push(line.trim());
+  lines = lines.slice(0, maxLines);
+  const totalH = lines.length * lineH;
+  lines.forEach((l, i) => ctx.fillText(l, x, y - totalH / 2 + i * lineH + lineH * 0.4));
+}
+
+// ─── DOWNLOAD ─────────────────────────────────────────────
+function downloadThumb() {
+  renderThumb();
+  const a = document.createElement('a');
+  a.download = 'thumbnail-thumbcraft.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+  showToast('Download iniciado! 🎉');
+}
+
+// ─── TABS ─────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+// ─── IA ───────────────────────────────────────────────────
+async function runIA() {
+  const input = document.getElementById('iaInput').value.trim();
+  if (!input) { showToast('Descreva seu vídeo primeiro!'); return; }
+
+  const btn = document.querySelector('#page-ia .btn-primary');
+  const spinner = document.getElementById('iaSpinner');
+  const btnText = document.getElementById('iaBtnText');
+  const result = document.getElementById('aiResult');
+
+  spinner.style.display = 'block';
+  btnText.textContent = 'Gerando...';
+  btn.disabled = true;
+  result.classList.remove('visible');
+
+  try {
+    const platform = document.getElementById('platformSelect').value;
+    const prompt = `Você é um especialista em thumbnails e títulos virais para criadores de conteúdo.
+
+O criador quer fazer um vídeo/stream sobre: "${input}"
+Plataforma: ${platform}
+
+Responda em português com:
+1. 3 títulos chamativos para thumbnail (CURTOS, máx 6 palavras, em CAPS)
+2. Paleta de cores recomendada (2 cores hex)
+3. Dica de layout/composição para a thumbnail
+4. 1 emoji que combina com o conteúdo
+
+Seja direto, criativo e focado em alto CTR (click-through rate).`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content?.map(b => b.text || '').join('') || 'Erro ao gerar.';
+
+    result.innerHTML = `<div class="ai-tag">✨ IA ThumbCraft</div>\n${text}`;
+    result.classList.add('visible');
+  } catch (e) {
+    result.innerHTML = `<div class="ai-tag">⚠️ Erro</div>\nNão foi possível conectar à IA. Verifique sua conexão.`;
+    result.classList.add('visible');
+  }
+
+  spinner.style.display = 'none';
+  btnText.textContent = '✨ Gerar Ideias com IA';
+  btn.disabled = false;
+}
+
+// ─── TOAST ────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+buildTemplateGrid();
+buildColorRow();
+renderThumb();
+</script>
+</body>
+</html>
